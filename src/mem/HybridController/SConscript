@@ -1,0 +1,7 @@
+Import('*')
+
+DebugFlag('Gem5Hacking')
+DebugFlag('PCMSim')
+
+SimObject('HybridController.py')
+Source('hybrid_controller.cc')

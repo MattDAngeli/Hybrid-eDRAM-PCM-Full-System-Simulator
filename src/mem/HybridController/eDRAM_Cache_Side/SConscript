@@ -1,0 +1,5 @@
+Import('*')
+
+SimObject('eDRAM.py')
+Source('eDRAM_cache.cc')
+

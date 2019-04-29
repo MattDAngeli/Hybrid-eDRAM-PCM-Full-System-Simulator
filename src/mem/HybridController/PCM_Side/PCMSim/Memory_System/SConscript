@@ -1,0 +1,6 @@
+Import('*')
+
+SimObject('PCMProxy.py')
+SimObject('PCMSimSystem.py')
+Source('pcm_sim_memory_system.cc')
+Source('pcm_sim_proxy.cc')

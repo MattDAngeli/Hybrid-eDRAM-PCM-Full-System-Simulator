@@ -1,0 +1,37 @@
+# import the parser
+from optparse import OptionParser
+parser = OptionParser()
+parser.add_option('--workload_dir', help="workload directory")
+(options, args) = parser.parse_args()
+
+from os.path import join
+
+# import the m5 (gem5) library created when gem5 is built
+import m5
+# import all of the SimObjects
+from m5.objects import *
+
+# import custom caches
+m5.util.addToPath("../../")
+from caches import *
+
+# create the system we are going to simulate
+system = System()
+system.mmap_using_noreserve = True # When simulating large memory
+
+# Set the clock fequency of the system (and all of its children)
+system.clk_domain = SrcClockDomain()
+system.clk_domain.clock = '3.32GHz'
+system.clk_domain.voltage_domain = VoltageDomain()
+
+# Set up the system
+system.mem_mode = 'timing'               # Use timing accesses
+system.mem_ranges = [AddrRange('128GB')] # Create an address range
+
+###################### Define Workloads ###################### 
+np = 12
+MAX_INSTS = 100000000
+
+multiprocesses = []
+
+

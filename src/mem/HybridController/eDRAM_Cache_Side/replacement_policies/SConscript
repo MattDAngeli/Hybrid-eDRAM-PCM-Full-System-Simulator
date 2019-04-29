@@ -1,0 +1,4 @@
+Import('*')
+
+SimObject('eDRAMCacheReplacementPolicies.py')
+Source('eDRAM_cache_fa_lru.cc')

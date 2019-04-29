@@ -1,0 +1,4 @@
+Import('*')
+
+SimObject('eDRAMCacheTags.py')
+Source('eDRAM_cache_fa_tags.cc')
