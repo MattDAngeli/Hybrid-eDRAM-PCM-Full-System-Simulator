@@ -5,6 +5,7 @@
 
 eDRAMCache::eDRAMCache(const eDRAMCacheParams *params)
     : MemObject(params),
+      write_only(params->write_only),
       tick_event(this),
       mshr_cb_func(std::bind(&eDRAMCache::MSHRComplete, this,
                           std::placeholders::_1)),
@@ -65,18 +66,22 @@ bool eDRAMCache::access(PacketPtr pkt)
     {
         if (pkt->isWrite())
         {
+            // Record a write hit
             num_of_write_hits++;
+            // TODO, make it configurable (compile-time) because data is 
+            // not important in cache or system studies
             blk->updateNewData(pkt->getConstPtr<uint8_t>(), blkSize);
         }
         else
         {
-            num_of_read_hits++;
+            num_of_read_hits++; // Record a read hit
         }
         hybridC->accessAndRespond(pkt);
         return true;
     }
 
     // we should consider the wb queue as well.
+    // This happens very rarelly, but still optimize the codes in the future
     bool in_wb_queue = wb_queue->isInQueue(pkt->getAddr());
     if (in_wb_queue)
     {
@@ -99,18 +104,32 @@ bool eDRAMCache::access(PacketPtr pkt)
         return true;
     }
 
-    if (pkt->isWrite() && !blocked())
+    if ((write_only && pkt->isWrite() && !blocked()) ||
+        (!write_only && !blocked()))
     {
         assert(!mshrs->isFull());
         assert(!wb_queue->isFull());
+        if (write_only)
+        {
+            assert(pkt->isWrite());
+        }
 
-        // For a write miss, send a read to PCM
+        if (pkt->isWrite())
+        {
+            num_of_write_allos++; // allocate for write
+        }
+        else
+        {
+            num_of_read_allos++; // allocate for read
+        }
+
         Addr target = tags->extractTag(pkt->getAddr());
         mshrs->allocate(target);
-        DPRINTF(Gem5Hacking, "eDRAM detected a write miss. Allocating MSHR for "
+        DPRINTF(Gem5Hacking, "eDRAM detected a miss. Allocating MSHR for "
                              "block %#x\n", target);
         
-	// Record data information for this write packet
+	// Record data information
+	// TODO, make it configurable (compile time)
         auto ite = mshrs->data_entries.find(target);
         assert(ite != mshrs->data_entries.end());
         eDRAMSimulator::Data_Entry &entry = ite->second;
@@ -199,7 +218,6 @@ void eDRAMCache::allocateBlock(Request &req)
     tags->insertBlock(req.addr, victim, req.new_data.get(), req.old_data.get());
     assert(victim->isValid()); 
 
-    num_of_allos++;
     DPRINTF(Gem5Hacking, "Block %#x is now in eDRAM. "
                          "Current size of eDRAM: %d\n", req.addr,
                          tags->numOccupiedBlocks());
@@ -226,8 +244,10 @@ void eDRAMCache::regStats()
 {
     MemObject::regStats();
 
-    num_of_allos.name("num_edram_allocs")
-                .desc("Number of eDRAM allocations");
+    num_of_read_allos.name("num_read_allos")
+                     .desc("Number of eDRAM allocations for reads");
+    num_of_write_allos.name("num_write_allos")
+                      .desc("Number of eDRAM allocations for writes");
     num_of_evics.name("num_edram_evics")
                 .desc("Number of eDRAM evictions");
     num_of_write_hits.name("num_of_write_hits")

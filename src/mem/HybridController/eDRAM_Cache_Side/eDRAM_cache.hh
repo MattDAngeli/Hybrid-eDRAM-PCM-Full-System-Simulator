@@ -43,6 +43,9 @@ class eDRAMCache : public MemObject
     bool access(PacketPtr pkt);
 
     Tick getTagDelay() { return tag_delay; }
+
+    bool write_only; // Only cache writes or both reads and writes
+
   private:
     // We rely on tick() to send either an MSHR request or a write-back request
     void processTickEvent();
@@ -81,7 +84,8 @@ class eDRAMCache : public MemObject
   private:
     void regStats() override;
 
-    Stats::Scalar num_of_allos;
+    Stats::Scalar num_of_read_allos;
+    Stats::Scalar num_of_write_allos;
     Stats::Scalar num_of_evics;
     Stats::Scalar num_of_write_hits;
     Stats::Scalar num_of_read_hits;

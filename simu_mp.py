@@ -28,8 +28,10 @@ def processM5out(run_name,num_unique_benchmarks):
         if "average_write_queue_size" in line:
             write_queue_info.append(float(line.split()[1]))
 
-        if "num_edram_allocs" in line:
-            num_edram_allocs = str(line.split()[1])
+        if "num_read_allos" in line:
+            num_read_allos = str(line.split()[1])
+        if "num_write_allos" in line:
+            num_write_allos = str(line.split()[1])
         if "num_edram_evics" in line:
             num_edram_evics = str(line.split()[1])
         if "num_of_write_hits" in line:
@@ -50,7 +52,8 @@ def processM5out(run_name,num_unique_benchmarks):
 
     results.append(str(max(read_queue_info)))
     results.append(str(max(write_queue_info)))
-    results.append(num_edram_allocs)
+    results.append(num_read_allos)
+    results.append(num_write_allos)
     results.append(num_edram_evics)
     results.append(num_of_write_hits)
     results.append(num_of_read_hits)
@@ -72,7 +75,7 @@ def processM5out(run_name,num_unique_benchmarks):
     outD.close()
 
 def runSimulation():
-    simulation_dirs=[join(BASE_DIR, d) for d in listdir(BASE_DIR) if d != "gen_mp" and d != "4"]
+    simulation_dirs=[join(BASE_DIR, d) for d in listdir(BASE_DIR) if d != "gen_mp"]
     
     for d in simulation_dirs:
         runs=[join(d, f) for f in listdir(d)]

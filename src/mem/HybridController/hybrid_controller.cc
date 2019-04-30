@@ -155,6 +155,7 @@ void HybridController::recvFunctional(PacketPtr pkt)
 
 bool HybridController::recvTimingReq(PacketPtr pkt)
 {
+    DPRINTF(PCMSim, "receiving...\n");
     panic_if(pkt->cacheResponding(), "Should not see packets where cache "
              "is responding");
 
@@ -172,14 +173,20 @@ bool HybridController::recvTimingReq(PacketPtr pkt)
     {
         return true;
     }
-    else if (!hit_in_eDRAM && pkt->isWrite())
+    else
     {
-        req_stall = true;
-        return false;
+        if ((pkt->isWrite() && eDRAM->write_only) || !eDRAM->write_only)
+        {
+            // In write only mode, we don't allow write request to be directly
+            // sent to PCM
+            // In normal caching mode, we don't allow any requests to be directly
+            // sent to PCM
+            req_stall = true;
+            return false;
+        }
     }
 
-    assert(!pkt->isWrite());
-    assert(pkt->isRead());
+    assert(eDRAM->write_only && pkt->isRead());
 
     /* PCM access */
     bool accepted = pcm->access(pkt);
@@ -229,9 +236,6 @@ void HybridController::accessAndRespond(PacketPtr pkt)
 
 void HybridController::dataRetrieval(PacketPtr pkt, Request &req)
 {
-    assert(!pkt->isRead());
-    assert(pkt->isWrite());
-
     dataRetrieval(pkt, req.new_data.get(), req.old_data.get());
 }
 
@@ -239,9 +243,6 @@ void HybridController::dataRetrieval(PacketPtr pkt,
                                      uint8_t *new_data,
                                      uint8_t *old_data)
 {
-    assert(!pkt->isRead());
-    assert(pkt->isWrite());
-
     assert(new_data != nullptr);
     assert(old_data != nullptr);
 
@@ -249,14 +250,22 @@ void HybridController::dataRetrieval(PacketPtr pkt,
     // needs to be aware of new data as well as the old data
     unsigned blkSize = pkt->getSize();
 
-    // Step one, retrieve new data from pkt
-    std::memcpy(new_data, pkt->getConstPtr<uint8_t>(), blkSize);
-
-    // Step two, retrieve old data from physical memory
+    // Step one, retrieve old data from physical memory
     assert(AddrRange(pkt->getAddr(),
                      pkt->getAddr() + (pkt->getSize() - 1)).isSubset(range));
     uint8_t *hostAddr = pmemAddr + pkt->getAddr() - range.start();
     std::memcpy(old_data, hostAddr, blkSize);
+
+    // Step two, retrieve new data
+    if (pkt->isWrite())
+    {
+        std::memcpy(new_data, pkt->getConstPtr<uint8_t>(), blkSize);
+    }
+    else
+    {
+        // For reads, new data is the same as old data.
+        std::memcpy(new_data, hostAddr, blkSize);
+    }
 }
 
 HybridController *
