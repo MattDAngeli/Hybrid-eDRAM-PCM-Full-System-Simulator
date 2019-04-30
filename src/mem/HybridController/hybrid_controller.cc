@@ -186,7 +186,10 @@ bool HybridController::recvTimingReq(PacketPtr pkt)
         }
     }
 
-    assert(eDRAM->write_only && pkt->isRead());
+    // At this point, eDRAM must be in write_only mode and there must be a read
+    // packet
+    assert(eDRAM->write_only);
+    assert(pkt->isRead());
 
     /* PCM access */
     bool accepted = pcm->access(pkt);
