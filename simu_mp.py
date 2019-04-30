@@ -82,7 +82,7 @@ def runSimulation():
         
         num_unique_benchmarks=d.split("/")[-1]
         for run in runs:
-            subprocess.call(["build/ARM/gem5.opt", run, "--workload_dir", "/home/shihao-song/Documents/Research_Extend_1/CPU2017_ARM/"])
+            subprocess.call(["build/ARM/gem5.opt", "--debug-flags=PCMSim", run, "--workload_dir", "/home/shihao-song/Documents/Research_Extend_1/CPU2017_ARM/"])
             run_name=run.split("/")[-1]
             processM5out(run_name,num_unique_benchmarks)
 
