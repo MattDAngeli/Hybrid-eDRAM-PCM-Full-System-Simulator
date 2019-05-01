@@ -87,9 +87,9 @@ bool eDRAMCache::access(PacketPtr pkt)
     {
         Request req(pkt->getAddr(),
                     Request::Request_Type::WRITE, blkSize, wb_cb_func);
-        auto ite = wb_queue->data_entries.find(pkt->getAddr());
-        assert(ite != wb_queue->data_entries.end());
-        eDRAMSimulator::Data_Entry &entry = ite->second;
+        auto ite = wb_queue->entries.find(pkt->getAddr());
+        assert(ite != wb_queue->entries.end());
+        eDRAMSimulator::Entry &entry = ite->second;
         // retrieve the data
         entry.retrieve(req.new_data.get(), req.old_data.get());
         if (pkt->isWrite())
@@ -111,33 +111,41 @@ bool eDRAMCache::access(PacketPtr pkt)
         assert(!wb_queue->isFull());
         if (write_only)
         {
+            // In write only mode, we only cache writes
             assert(pkt->isWrite());
         }
 
+        Addr target = tags->extractTag(pkt->getAddr());
         if (pkt->isWrite())
         {
+            mshrs->allocate(target, Request::MSHR_Type::STORE);
             num_of_write_allos++; // allocate for write
         }
         else
         {
+            mshrs->allocate(target, Request::MSHR_Type::LOAD);
             num_of_read_allos++; // allocate for read
         }
-
-        Addr target = tags->extractTag(pkt->getAddr());
-        mshrs->allocate(target);
         DPRINTF(Gem5Hacking, "eDRAM detected a miss. Allocating MSHR for "
                              "block %#x\n", target);
         
 	// Record data information
 	// TODO, make it configurable (compile time)
-        auto ite = mshrs->data_entries.find(target);
-        assert(ite != mshrs->data_entries.end());
-        eDRAMSimulator::Data_Entry &entry = ite->second;
+        auto ite = mshrs->entries.find(target);
+        assert(ite != mshrs->entries.end());
+        eDRAMSimulator::Entry &entry = ite->second;
         hybridC->dataRetrieval(pkt,
                                entry.new_data.get(),
                                entry.old_data.get());
-
-        hybridC->accessAndRespond(pkt);
+        if (pkt->isWrite())
+        {
+            hybridC->accessAndRespond(pkt);
+        }
+        else
+        {
+            assert(pkt->isRead());
+            outstandingReads[pkt->getAddr()].push_back(pkt);
+        }
 
 	return true;
     }
@@ -150,10 +158,12 @@ void eDRAMCache::sendMSHRReq(Addr addr)
     Request req(addr, Request::Request_Type::READ, blkSize, mshr_cb_func);
     // We need to record data now and later write to victim block in 
     // callback function
-    auto ite = mshrs->data_entries.find(addr);
-    assert(ite != mshrs->data_entries.end());
-    eDRAMSimulator::Data_Entry &entry = ite->second;
+    auto ite = mshrs->entries.find(addr);
+    assert(ite != mshrs->entries.end());
+    eDRAMSimulator::Entry &entry = ite->second;
     entry.retrieve(req.new_data.get(), req.old_data.get());
+    assert(entry.mshr_type != Request::MSHR_Type::MAX);
+    req.mshr_type = entry.mshr_type;
 
     if (pcm->access(req))
     {
@@ -166,9 +176,9 @@ void eDRAMCache::sendWBReq(Addr addr)
 {
     Request req(addr, Request::Request_Type::WRITE, blkSize, wb_cb_func);
     // Retrieve data from wb_queue
-    auto ite = wb_queue->data_entries.find(addr);
-    assert(ite != wb_queue->data_entries.end());
-    eDRAMSimulator::Data_Entry &entry = ite->second;
+    auto ite = wb_queue->entries.find(addr);
+    assert(ite != wb_queue->entries.end());
+    eDRAMSimulator::Entry &entry = ite->second;
     entry.retrieve(req.new_data.get(), req.old_data.get());
 
     if (pcm->access(req))
@@ -180,6 +190,7 @@ void eDRAMCache::sendWBReq(Addr addr)
 
 void eDRAMCache::MSHRComplete(Request& req)
 {
+    assert(req.mshr_type != Request::MSHR_Type::MAX);
     DPRINTF(Gem5Hacking, "A MSHR request for block %#x has been completed. \n",
                          req.addr);
 
@@ -190,6 +201,26 @@ void eDRAMCache::MSHRComplete(Request& req)
     mshrs->deAllocate(req.addr);
     DPRINTF(Gem5Hacking, "MSHR entry for block %#x has been de-allocated. \n",
                          req.addr);
+
+    if (req.mshr_type == Request::MSHR_Type::STORE)
+    {
+        return;
+    }
+    // Step three: send back 
+    auto p = outstandingReads.find(req.addr);
+    assert(p != outstandingReads.end());
+    assert(!p->second.empty()); // Should not be empty initially
+
+    while (!p->second.empty())
+    {
+        DPRINTF(PCMSim, "Sent back response.\n");
+        PacketPtr pkt = p->second.front();
+        hybridC->accessAndRespond(pkt);
+        p->second.pop_front();
+    }
+
+    assert(p->second.empty());
+    outstandingReads.erase(p);
 }
 
 void eDRAMCache::WBComplete(Request& req)
@@ -226,10 +257,10 @@ void eDRAMCache::allocateBlock(Request &req)
 void eDRAMCache::evictBlock(eDRAMCacheFABlk *victim)
 {
     // Send to write-back queue
-    wb_queue->allocate(victim->tag);
-    auto ite = wb_queue->data_entries.find(victim->tag);
-    assert(ite != wb_queue->data_entries.end());
-    eDRAMSimulator::Data_Entry &entry = ite->second;
+    wb_queue->allocate(victim->tag, Request::MSHR_Type::MAX);
+    auto ite = wb_queue->entries.find(victim->tag);
+    assert(ite != wb_queue->entries.end());
+    eDRAMSimulator::Entry &entry = ite->second;
     victim->retrieve(blkSize, entry.new_data.get(), entry.old_data.get());
 
     // Invalidate this block

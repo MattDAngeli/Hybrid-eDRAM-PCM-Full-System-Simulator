@@ -6,16 +6,27 @@
 #include <set>
 #include <unordered_map>
 
+#include "mem/HybridController/PCM_Side/PCMSim/request.hh"
+
+namespace PCMSim
+{
+    class Request;
+}
+
 namespace eDRAMSimulator
 {
-struct Data_Entry
+struct Entry
 {
-    Data_Entry(unsigned _blkSize)
+    Entry(unsigned _blkSize, PCMSim::Request::MSHR_Type t_mshr_type)
         : blkSize(_blkSize),
+          mshr_type(t_mshr_type),
           new_data(new uint8_t[blkSize]),
           old_data(new uint8_t[blkSize])
     {}
+    
     unsigned blkSize;
+
+    PCMSim::Request::MSHR_Type mshr_type;
 
     void retrieve(uint8_t *_new_data, uint8_t *_old_data)
     {
@@ -56,14 +67,15 @@ class Deferred_Queue
     }
 
     virtual void entryOnBoard(Addr addr) {}
-    virtual void allocate(Addr addr)
+    virtual void allocate(Addr addr,
+                          PCMSim::Request::MSHR_Type t_mshr_type)
     {
-        data_entries.insert({addr, Data_Entry(blkSize)});
+        entries.insert({addr, Entry(blkSize, t_mshr_type)});
     }
 
     virtual void deAllocate(Addr addr, bool on_board = true)
     {
-        assert(data_entries.erase(addr));
+        assert(entries.erase(addr));
     }
 
     virtual bool isInQueue(Addr addr)
@@ -74,8 +86,8 @@ class Deferred_Queue
         return (in_all && not_on_board);
     }
 
-    typedef std::unordered_map<Addr, Data_Entry> DataEntryHash;
-    DataEntryHash data_entries;
+    typedef std::unordered_map<Addr, Entry> EntryHash;
+    EntryHash entries;
 
   protected:
     int max; // max number of MSHR entries
@@ -96,18 +108,31 @@ public:
         entries_on_flight.insert(addr);
     }
 
-    void allocate(Addr addr) override
+    void allocate(Addr addr,
+                  PCMSim::Request::MSHR_Type t_mshr_type) override
     {
         auto ret = all_entries.insert(addr);
 
         // To prevent the same addr is inserted again.
         if (ret.second == true)
 	{
-            Deferred_Queue::allocate(addr);
+            Deferred_Queue::allocate(addr, t_mshr_type);
 	}
+        else
+        {
+            auto ite = entries.find(addr);
+            assert(ite != entries.end());
+            Entry &entry = ite->second;
+            // LS, I double it will ever happen
+            if (entry.mshr_type != PCMSim::Request::MSHR_Type::MAX &&
+                entry.mshr_type != t_mshr_type)
+            {
+                entry.mshr_type = PCMSim::Request::MSHR_Type::LS;
+            }
+        }
 
         // Make sure the entry is there
-        assert(data_entries.find(addr) != data_entries.end());
+        assert(entries.find(addr) != entries.end());
     }
 
     void deAllocate(Addr addr, bool on_board = true) override
@@ -121,7 +146,7 @@ public:
         Deferred_Queue::deAllocate(addr);
 
         // Double make sure the entry is gone.
-        assert(data_entries.find(addr) == data_entries.end());
+        assert(entries.find(addr) == entries.end());
     }
 };
 }

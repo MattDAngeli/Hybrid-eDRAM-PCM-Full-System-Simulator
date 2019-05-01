@@ -9,6 +9,8 @@
 #include "mem/HybridController/eDRAM_Cache_Side/util/deferred_queue.hh"
 #include "mem/HybridController/PCM_Side/PCMSim/request.hh"
 
+#include <unordered_map>
+
 namespace eDRAMSimulator
 {
     class Deferred_Set;
@@ -45,6 +47,10 @@ class eDRAMCache : public MemObject
     Tick getTagDelay() { return tag_delay; }
 
     bool write_only; // Only cache writes or both reads and writes
+
+  private:
+    // TODO, we need to drain the MSHRS
+    std::unordered_map<Addr, std::deque<PacketPtr>> outstandingReads;
 
   private:
     // We rely on tick() to send either an MSHR request or a write-back request

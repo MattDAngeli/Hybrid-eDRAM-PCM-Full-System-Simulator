@@ -155,7 +155,6 @@ void HybridController::recvFunctional(PacketPtr pkt)
 
 bool HybridController::recvTimingReq(PacketPtr pkt)
 {
-    DPRINTF(PCMSim, "receiving...\n");
     panic_if(pkt->cacheResponding(), "Should not see packets where cache "
              "is responding");
 

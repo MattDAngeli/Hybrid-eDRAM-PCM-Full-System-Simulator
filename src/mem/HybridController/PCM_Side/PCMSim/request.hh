@@ -25,6 +25,15 @@ class Request
         MAX
     }req_type;
 
+    // MSHR type
+    enum class MSHR_Type : int
+    {
+        LOAD, // serving a load miss
+        STORE, // serving a store miss
+        LS, // I don't think it will ever happen but let's keep
+        MAX
+    }mshr_type;
+
     // clock cycle that request arrives to the queue
     Tick queue_arrival;
 
@@ -49,6 +58,7 @@ class Request
             std::function<void(Request&)> _callback) :
         addr(_addr),
         req_type(_type),
+        mshr_type(MSHR_Type::MAX),
         blkSize(_blkSize),
         new_data(new uint8_t[blkSize]),
         old_data(new uint8_t[blkSize]),

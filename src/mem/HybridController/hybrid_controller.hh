@@ -90,6 +90,15 @@ class HybridController : public AbstractMemory
     eDRAMCache *eDRAM;
     PCM *pcm;
 
+  private:
+    void regStats() override
+    {
+        AbstractMemory::regStats();
+        num_of_forwarded_reads.name("num_of_forwarded_reads")
+                              .desc("Number of reads forwarded to PCM");
+    }
+    Stats::Scalar num_of_forwarded_reads;
+
   friend class eDRAMCache;
   friend class PCM;
 };
