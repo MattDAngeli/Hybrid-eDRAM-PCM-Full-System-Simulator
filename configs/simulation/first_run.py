@@ -2,6 +2,15 @@
 from optparse import OptionParser
 parser = OptionParser()
 parser.add_option('--workload_dir', help="workload directory")
+parser.add_option('--eDRAM_cache_size', help="eDRAM cache size")
+parser.add_option("-w", action="store_true",\
+                  dest="eDRAM_cache_write_only_mode",
+                  help="eDRAM cache will cache writes only")
+parser.add_option("-n", action="store_false",\
+                  dest="eDRAM_cache_write_only_mode",
+                  help="eDRAM cache will cache both reads and writes (normal)")
+parser.add_option('--eDRAM_cache_read_partition', help="How much eDRAM for reads")
+parser.add_option('--eDRAM_cache_write_partition', help="How much for writes")
 (options, args) = parser.parse_args()
 
 from os.path import join
@@ -35,6 +44,10 @@ system.cpu.max_insts_all_threads = 1000000
 # Create a memory bus, eDRAM and PCM
 system.membus = SystemXBar() # eDRAM to PCM
 system.hybrid = HybridController() # PCM (Main Memory)
+system.hybrid.eDRAM_cache_size = options.eDRAM_cache_size
+system.hybrid.eDRAM_cache_write_only_mode = options.eDRAM_cache_write_only_mode
+system.hybrid.eDRAM_cache_read_partition = options.eDRAM_cache_read_partition
+system.hybrid.eDRAM_cache_write_partition = options.eDRAM_cache_write_partition
 
 # Hook up the CPU ports
 system.cpu.icache = L1ICache()

@@ -14,10 +14,10 @@ class HybridController(AbstractMemory):
     block_size = Param.Int(64, "cache line size in bytes")
     
     # eDRAM Cache Configurations
-    eDRAM_cache_size = Param.MemorySize("64MB", "capacity of eDRAM")
-    eDRAM_cache_write_only_mode = Param.Bool(False, "cache writes only?")
-    eDRAM_cache_read_partition = Param.MemorySize("32MB", "How much eDRAM for reads")
-    eDRAM_cache_write_partition = Param.MemorySize("32MB", "How much for writes")
+    eDRAM_cache_size = Param.MemorySize("capacity of eDRAM")
+    eDRAM_cache_write_only_mode = Param.Bool("cache writes only?")
+    eDRAM_cache_read_partition = Param.MemorySize("How much eDRAM for reads")
+    eDRAM_cache_write_partition = Param.MemorySize("How much for writes")
 
     eDRAM_cache_tag_latency = Param.Cycles(20, "tag lookup latency")
 
