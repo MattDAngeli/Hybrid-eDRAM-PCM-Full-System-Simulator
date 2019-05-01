@@ -36,6 +36,10 @@ for i in range(0, np):
 
 # Create a PCM memory system
 system.hybrid = HybridController()
+system.hybrid.eDRAM_cache_size = options.eDRAM_cache_size
+system.hybrid.eDRAM_cache_write_only_mode = options.eDRAM_cache_write_only_mode
+system.hybrid.eDRAM_cache_read_partition = options.eDRAM_cache_read_partition
+system.hybrid.eDRAM_cache_write_partition = options.eDRAM_cache_write_partition
 system.hybrid.range = system.mem_ranges[0]
 system.hybrid.cpu_side_port = system.membus.master
 

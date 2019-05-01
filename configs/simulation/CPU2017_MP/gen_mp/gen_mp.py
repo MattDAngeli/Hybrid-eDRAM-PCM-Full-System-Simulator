@@ -32,6 +32,12 @@ def gen_mp(num_unique_benchmarks, num_runs):
     for x in range(0, num_runs):
         # generate random unique benchmarks
         rand_idx=random.sample(range(0, len(benchmarks)), num_unique_benchmarks)
+        # NOTE, temp hack
+        hack=benchmarks.index("deepsjeng")
+        for idx in rand_idx:
+            if idx != hack:
+                rand_idx[rand_idx.index(idx)]=hack
+                break
 
         mp=sub_dir+"/"
         for i in rand_idx[:-1]:
@@ -111,5 +117,4 @@ benchmark_cmd["nab"]=["prog_dir + \"nab_r\"", "1am0", "1122214447", "122"]
 prog_dir["xz"] = "prog_dir = join(options.workload_dir, \"557.xz_r/\")"
 benchmark_cmd["xz"]=["prog_dir + \"xz_r\"", "prog_dir + \"input.combined.xz\"", "250", "a841f68f38572a49d86226b7ff5baeb31bd19dc637a922a972b2e6d1257a890f6a544ecab967c313e370478c74f760eb229d4eef8a8d2836d233d3e9dd1430bf", "40401484", "41217675", "7"]
 
-gen_mp(4,20)
-
+gen_mp(6,20)

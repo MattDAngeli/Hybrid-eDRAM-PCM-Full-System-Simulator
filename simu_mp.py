@@ -6,6 +6,7 @@ import subprocess
 
 BASE_DIR="configs/simulation/CPU2017_MP"
 
+# TODO, make the output directory configurable
 OUT_DIR="CPU2017_MP_Assessment"
 
 if not exists(OUT_DIR):
