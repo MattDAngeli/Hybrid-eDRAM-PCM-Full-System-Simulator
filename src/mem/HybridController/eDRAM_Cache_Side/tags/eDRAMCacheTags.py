@@ -8,11 +8,11 @@ class eDRAMCacheTagsWithFABlk(SimObject):
     abstract = True
     cxx_header = "mem/HybridController/eDRAM_Cache_Side/tags/eDRAM_cache_tags.hh"
 
-    size = Param.MemorySize(Parent.size, "capacity of eDRAM")
+    size = Param.MemorySize(Parent.size, "same as parent")
 
-    block_size = Param.Int(Parent.block_size, "cache line size in bytes")
+    block_size = Param.Int(Parent.block_size, "same")
 
-    tag_latency = Param.Cycles(Parent.tag_latency, "tag lookup latency")
+    tag_latency = Param.Cycles(Parent.tag_latency, "same")
 
     policy = Param.eDRAMCacheFAReplacementPolicy(eDRAMCacheFALRU(), "Reply. policy")
 

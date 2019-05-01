@@ -8,12 +8,10 @@ class PCM(MemObject):
     type = 'PCM'
     cxx_header = "mem/HybridController/PCM_Side/PCM.hh"
 
-    clock = Param.Clock("200MHz", "PCM frequency")
-
-    size = Param.MemorySize("128GB", "capacity of eDRAM")
-
-    block_size = Param.Int(64, "cache line size in bytes")
-
-    cfg_file = Param.String("src/mem/HybridController/PCM_Side/PCMSim/Configs/cfg_files/PCM.cfg", "PCM config file")
+    block_size = Param.Int(Parent.block_size, "same as parent")
+    
+    clock = Param.Clock(Parent.PCM_clock, "same")
+    size = Param.MemorySize(Parent.PCM_size, "same")
+    cfg_file = Param.String(Parent.PCM_cfg_file, "same")
 
     pcm_proxy = Param.PCMSimProxy(PCMSimProxy(), "PCMSim Proxy")

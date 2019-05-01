@@ -7,10 +7,10 @@ class PCMSimMemorySystem(SimObject):
     cxx_class = 'PCMSimMemorySystem'
     cxx_header = "mem/HybridController/PCM_Side/PCMSim/Memory_System/pcm_sim_memory_system.hh"
 
-    clock = Param.Clock(Parent.clock, "PCM frequency")
+    clock = Param.Clock(Parent.clock, "same as parent")
 
-    size = Param.MemorySize(Parent.size, "capacity of eDRAM")
+    size = Param.MemorySize(Parent.size, "same")
 
-    block_size = Param.Int(Parent.block_size, "cache line size in bytes")
+    block_size = Param.Int(Parent.block_size, "same")
 
-    cfg_file = Param.String(Parent.cfg_file, "PCM config file")
+    cfg_file = Param.String(Parent.cfg_file, "same")

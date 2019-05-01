@@ -7,14 +7,16 @@ class eDRAMCache(MemObject):
     type = 'eDRAMCache'
     cxx_header = "mem/HybridController/eDRAM_Cache_Side/eDRAM_cache.hh"
 
-    size = Param.MemorySize("64MB", "capacity of eDRAM")
-    block_size = Param.Int(64, "cache line size in bytes")
-    write_only = Param.Bool(False, "cache writes only?")
+    block_size = Param.Int(Parent.block_size, "same as parent")
+    
+    size = Param.MemorySize(Parent.eDRAM_cache_size, "same")
+    write_only = Param.Bool(Parent.eDRAM_cache_write_only_mode, "same")
+    read_part = Param.MemorySize(Parent.eDRAM_cache_read_partition, "same")
+    write_part = Param.MemorySize(Parent.eDRAM_cache_write_partition, "same")
 
-    # Assume same tag latency as LLC
-    tag_latency = Param.Cycles(20, "tag lookup latency")
+    tag_latency = Param.Cycles(Parent.eDRAM_cache_tag_latency, "same")
 
-    mshr_entries = Param.Int(32, "maximum number mshrs")
-    wb_entries = Param.Int(32, "maximum number mshrs")
+    mshr_entries = Param.Int(Parent.eDRAM_cache_mshr_entries, "same")
+    wb_entries = Param.Int(Parent.eDRAM_cache_wb_entries, "same")
 
     tags = Param.eDRAMCacheTagsWithFABlk(eDRAMCacheFATags(), "tag store")

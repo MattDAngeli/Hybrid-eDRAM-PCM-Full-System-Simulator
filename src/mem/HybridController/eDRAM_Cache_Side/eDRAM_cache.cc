@@ -118,11 +118,13 @@ bool eDRAMCache::access(PacketPtr pkt)
         Addr target = tags->extractTag(pkt->getAddr());
         if (pkt->isWrite())
         {
+            // This is a STORE miss.
             mshrs->allocate(target, Request::MSHR_Type::STORE);
             num_of_write_allos++; // allocate for write
         }
         else
         {
+            // This is a LOAD miss.
             mshrs->allocate(target, Request::MSHR_Type::LOAD);
             num_of_read_allos++; // allocate for read
         }
@@ -130,7 +132,7 @@ bool eDRAMCache::access(PacketPtr pkt)
                              "block %#x\n", target);
         
 	// Record data information
-	// TODO, make it configurable (compile time)
+	// TODO, make it (data-aware) configurable (compile time)
         auto ite = mshrs->entries.find(target);
         assert(ite != mshrs->entries.end());
         eDRAMSimulator::Entry &entry = ite->second;
@@ -204,16 +206,18 @@ void eDRAMCache::MSHRComplete(Request& req)
 
     if (req.mshr_type == Request::MSHR_Type::STORE)
     {
+        // We have already responded STORE miss, no need to proceed further
         return;
     }
-    // Step three: send back 
+    // Step three: send back LOAD response 
     auto p = outstandingReads.find(req.addr);
     assert(p != outstandingReads.end());
     assert(!p->second.empty()); // Should not be empty initially
 
+    // The reason we are doing this is that there may be multiple misses to
+    // to the same address.
     while (!p->second.empty())
     {
-        DPRINTF(PCMSim, "Sent back response.\n");
         PacketPtr pkt = p->second.front();
         hybridC->accessAndRespond(pkt);
         p->second.pop_front();

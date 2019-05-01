@@ -123,7 +123,7 @@ public:
             auto ite = entries.find(addr);
             assert(ite != entries.end());
             Entry &entry = ite->second;
-            // LS, I double it will ever happen
+            // I double it will ever happen
             if (entry.mshr_type != PCMSim::Request::MSHR_Type::MAX &&
                 entry.mshr_type != t_mshr_type)
             {
