@@ -86,6 +86,90 @@ unsigned Array::write(std::list<Request>::iterator &req)
     // Latency also must take into account the read-time
     lat += read(req);
 
+    // Copy data from request for manipulation
+    unsigned char old_dat[req->blkSize];
+    unsigned char new_dat[req->blkSize];
+    unsigned char new_dat_f[req->blkSize];
+
+    std::memcpy(old_dat, req->old_data.get(), req->blkSize);
+    std::memcpy(new_dat, req->new_data.get(), req->blkSize);
+
+    for (int i=0; i<req->blkSize; i++)
+       new_dat_f[i] = ~new_dat[i];
+
+    // Initialize variables for tracking PCM operations
+    int sets = 0;
+    int resets = 0;
+    int sets_f = 0;
+    int resets_f = 0;
+
+    int total_bits = 0;
+
+    // Iterate through each element in the data structure
+   for (int i=0; i < req->blkSize; i++) {
+      // Identify bits to be changed using XOR
+      int bits_to_change = old_dat[i] ^ new_dat[i];
+      int bits_to_change_f = old_dat[i] ^ new_dat_f[i];
+      int bitwidth = sizeof(old_dat[i]) * 8;
+
+      // Shift through the bits of each element to identify
+      // if it is being ignored, SET, or RESET
+      for (int j=0; j < bitwidth; j++) {
+
+         // Normal data
+         // Change the current bit? (right-most)
+         int change_bit = bits_to_change & 1;
+
+         if ( change_bit == 1 ) {
+
+            // What is the new bit going to be? 1 or 0?
+            int new_bit = new_dat[i] & 1;
+
+            if ( new_bit == 1 ) {
+               sets += 1;
+            } else {
+               resets += 1;
+            }
+         }
+         new_dat[i] >>= 1;
+         bits_to_change >>= 1;
+
+         // Flipped data
+         int change_bit_f = bits_to_change_f & 1;
+
+         if ( change_bit_f == 1 ) {
+
+            int new_bit_f = new_dat_f[i] & 1;
+
+            if ( new_bit_f == 1 ) {
+               sets_f += 1;
+            } else {
+               resets_f += 1;
+            }
+         }
+         new_dat_f[i] >>= 1;
+         bits_to_change_f >>= 1;
+
+         total_bits++;
+      }
+   }
+
+   // Identify total number of operations
+   int operations = sets + resets;
+
+   // Output stats
+   std::cout << "Normal:" << std::endl <<
+      "\tSets: " << sets <<
+      "\tResets: " << resets <<
+      "\tTotal Bits: " << total_bits << std:: endl;
+   std::cout << "Flipped:" << std::endl <<
+     "\tSets: " << sets_f <<
+     "\tResets: " << resets_f <<
+     "\tTotal Bits: " << total_bits << std::endl;
+   std::cout << std::endl << (operations < total_bits/2 ? "Not " : "") <<
+      "Flipping Data" << std::endl;
+   std::cout << "=========================================" << std::endl;
+
     return lat;
 }
 
