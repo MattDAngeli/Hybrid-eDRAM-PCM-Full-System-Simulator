@@ -89,13 +89,9 @@ unsigned Array::write(std::list<Request>::iterator &req)
     // Copy data from request for manipulation
     unsigned char old_dat[req->blkSize];
     unsigned char new_dat[req->blkSize];
-    unsigned char new_dat_f[req->blkSize];
 
     std::memcpy(old_dat, req->old_data.get(), req->blkSize);
     std::memcpy(new_dat, req->new_data.get(), req->blkSize);
-
-    for (int i=0; i<req->blkSize; i++)
-       new_dat_f[i] = ~new_dat[i];
 
     // Initialize variables for tracking PCM operations
     int sets = 0;
@@ -108,8 +104,8 @@ unsigned Array::write(std::list<Request>::iterator &req)
     // Iterate through each element in the data structure
    for (int i=0; i < req->blkSize; i++) {
       // Identify bits to be changed using XOR
-      int bits_to_change = old_dat[i] ^ new_dat[i];
-      int bits_to_change_f = old_dat[i] ^ new_dat_f[i];
+      unsigned char bits_to_change = old_dat[i] ^ new_dat[i];
+      unsigned char bits_to_change_f = old_dat[i] ^ (~(new_dat[i]));
       int bitwidth = sizeof(old_dat[i]) * 8;
 
       // Shift through the bits of each element to identify
@@ -118,31 +114,31 @@ unsigned Array::write(std::list<Request>::iterator &req)
 
          // Normal data
          // Change the current bit? (right-most)
-         int change_bit = (bits_to_change >> j) & 1;
+         unsigned char change_bit = (bits_to_change >> j) & 1;
 
          if ( change_bit ) {
 
             // What is the new bit going to be? 1 or 0?
-            int new_bit = (new_dat[i] >> j) & 1;
+            unsigned char new_bit = (new_dat[i] >> j) & 1;
 
-            if ( new_bit ) {
-               sets += 1;
-            } else {
-               resets += 1;
+            if ( new_bit == 1 ) {
+               sets++;
+            } else if ( new_bit == 0 ) {
+               resets++;
             }
          }
 
          // Flipped data
-         int change_bit_f = (bits_to_change_f >> j) & 1;
+         unsigned char change_bit_f = (bits_to_change_f >> j) & 1;
 
          if ( change_bit_f ) {
 
-            int new_bit_f = (new_dat_f[i] >> j) & 1;
+            unsigned char new_bit_f = (~(new_dat[i]) >> j) & 1;
 
-            if ( new_bit_f ) {
-               sets_f += 1;
-            } else {
-               resets_f += 1;
+            if ( new_bit_f == 1 ) {
+               sets_f++;
+            } else if ( new_bit_f == 0 ) {
+               resets_f++;
             }
          }
 
@@ -155,17 +151,13 @@ unsigned Array::write(std::list<Request>::iterator &req)
    int flip = operations > total_bits/2 ? 1 : 0;
 
    // Output stats
-   std::cout << "normal," <<
+   std::cout <<
       sets << "," <<
       resets << "," <<
+      sets_f << "," <<
+      resets_f << "," <<
       total_bits << "," <<
       flip << std::endl;
-
-   std::cout << "flipped," <<
-     sets_f << "," <<
-     resets_f << "," <<
-     total_bits << "," <<
-     flip << std::endl;
 
     return lat;
 }
