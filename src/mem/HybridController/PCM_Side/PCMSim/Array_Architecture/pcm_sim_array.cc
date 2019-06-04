@@ -83,6 +83,9 @@ unsigned Array::write(std::list<Request>::iterator &req)
                    arr_info.tWL + arr_info.nclks_bit_set +
                    arr_info.nclks_bit_reset;
 
+    // Latency also must take into account the read-time
+    lat += read(req);
+
     return lat;
 }
 
