@@ -118,37 +118,33 @@ unsigned Array::write(std::list<Request>::iterator &req)
 
          // Normal data
          // Change the current bit? (right-most)
-         int change_bit = bits_to_change & 1;
+         int change_bit = (bits_to_change >> j) & 1;
 
-         if ( change_bit == 1 ) {
+         if ( change_bit ) {
 
             // What is the new bit going to be? 1 or 0?
-            int new_bit = new_dat[i] & 1;
+            int new_bit = (new_dat[i] >> j) & 1;
 
-            if ( new_bit == 1 ) {
+            if ( new_bit ) {
                sets += 1;
             } else {
                resets += 1;
             }
          }
-         new_dat[i] >>= 1;
-         bits_to_change >>= 1;
 
          // Flipped data
-         int change_bit_f = bits_to_change_f & 1;
+         int change_bit_f = (bits_to_change_f >> j) & 1;
 
-         if ( change_bit_f == 1 ) {
+         if ( change_bit_f ) {
 
-            int new_bit_f = new_dat_f[i] & 1;
+            int new_bit_f = (new_dat_f[i] >> j) & 1;
 
-            if ( new_bit_f == 1 ) {
+            if ( new_bit_f ) {
                sets_f += 1;
             } else {
                resets_f += 1;
             }
          }
-         new_dat_f[i] >>= 1;
-         bits_to_change_f >>= 1;
 
          total_bits++;
       }
@@ -156,19 +152,20 @@ unsigned Array::write(std::list<Request>::iterator &req)
 
    // Identify total number of operations
    int operations = sets + resets;
+   int flip = operations > total_bits/2 ? 1 : 0;
 
    // Output stats
-   std::cout << "Normal:" << std::endl <<
-      "\tSets: " << sets <<
-      "\tResets: " << resets <<
-      "\tTotal Bits: " << total_bits << std:: endl;
-   std::cout << "Flipped:" << std::endl <<
-     "\tSets: " << sets_f <<
-     "\tResets: " << resets_f <<
-     "\tTotal Bits: " << total_bits << std::endl;
-   std::cout << std::endl << (operations < total_bits/2 ? "Not " : "") <<
-      "Flipping Data" << std::endl;
-   std::cout << "=========================================" << std::endl;
+   std::cout << "normal," <<
+      sets << "," <<
+      resets << "," <<
+      total_bits << "," <<
+      flip << std::endl;
+
+   std::cout << "flipped," <<
+     sets_f << "," <<
+     resets_f << "," <<
+     total_bits << "," <<
+     flip << std::endl;
 
     return lat;
 }
